@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Download, Grid3X3, Calculator, Settings, Info } from 'lucide-react';
+import { Download, Grid3X3, Calculator, Settings, Info, Code } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 interface GridSettings {
@@ -54,6 +54,92 @@ const GridCalculator: React.FC = () => {
     } catch (error) {
       console.error('Export failed:', error);
     }
+  };
+
+  const exportCSS = () => {
+    const columnWidth = calculateColumnWidth();
+    const contentWidth = getContentWidth();
+    
+    const cssCode = `/* Grid System - ${settings.columns} Column Layout */
+.container {
+  max-width: ${settings.maxWidth}px;
+  margin: 0 auto;
+  padding: 0 ${settings.marginWidth}px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -${settings.gutterWidth / 2}px;
+}
+
+.col {
+  flex: 0 0 auto;
+  padding: 0 ${settings.gutterWidth / 2}px;
+}
+
+/* Column Width Classes */
+${Array.from({ length: settings.columns }, (_, i) => {
+  const colNum = i + 1;
+  const percentage = ((colNum / settings.columns) * 100).toFixed(4);
+  return `.col-${colNum} {
+  width: ${percentage}%;
+}`;
+}).join('\n\n')}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 20px;
+  }
+  
+  .row {
+    margin: 0 -10px;
+  }
+  
+  .col {
+    padding: 0 10px;
+  }
+  
+  /* Mobile: Stack columns */
+  .col-1, .col-2, .col-3, .col-4, .col-5, .col-6,
+  .col-7, .col-8, .col-9, .col-10, .col-11, .col-12 {
+    width: 100%;
+  }
+}
+
+/* Usage Example:
+<div class="container">
+  <div class="row">
+    <div class="col col-6">Half width column</div>
+    <div class="col col-6">Half width column</div>
+  </div>
+  <div class="row">
+    <div class="col col-4">One third</div>
+    <div class="col col-4">One third</div>
+    <div class="col col-4">One third</div>
+  </div>
+</div>
+*/
+
+/* Grid Specifications:
+ * Max Width: ${settings.maxWidth}px
+ * Content Width: ${contentWidth}px
+ * Column Width: ${columnWidth}px
+ * Total Columns: ${settings.columns}
+ * Gutter Width: ${settings.gutterWidth}px
+ * Margin Width: ${settings.marginWidth}px
+ */`;
+
+    const blob = new Blob([cssCode], { type: 'text/css' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `grid-system-${settings.columns}col-${settings.maxWidth}px.css`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const calculateColumnWidth = () => {
@@ -191,6 +277,15 @@ const GridCalculator: React.FC = () => {
             >
               <Download className="w-4 h-4" />
               Export Grid (PNG)
+            </button>
+
+            <button
+              onClick={exportCSS}
+              disabled={!showGrid}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm"
+            >
+              <Code className="w-4 h-4" />
+              Export CSS
             </button>
           </div>
         </div>
