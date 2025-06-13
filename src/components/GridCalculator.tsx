@@ -226,73 +226,69 @@ const GridCalculator: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
 
-        {/* Container Simulation */}
-        {showGrid && (
-          <div className="bg-gray-800 rounded-2xl p-6 shadow-2xl border border-gray-700">
-            <h3 className="text-lg font-semibold mb-4 text-blue-400">Container Simulation</h3>
-            
-            {/* Container Visualization */}
-            <div className="bg-gray-900 rounded-xl p-4 mb-4">
-              <div className="text-center mb-3">
-                <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">
-                  Max Width: {settings.maxWidth}px
-                </span>
+      {/* Container Simulation - Full Width Fluid Container */}
+      {showGrid && (
+        <div className="w-full">
+          <h3 className="text-lg font-semibold mb-4 text-blue-400 text-center">Container Simulation</h3>
+          
+          {/* Container Visualization */}
+          <div className="w-full">
+            {/* Outer Container */}
+            <div 
+              className="mx-auto border-2 border-dashed border-gray-600 relative"
+              style={{ maxWidth: `${settings.maxWidth}px` }}
+            >
+              {/* Margin Indicators */}
+              <div className="absolute -top-6 left-0 text-xs text-gray-500">
+                Margin: {settings.marginWidth}px
+              </div>
+              <div className="absolute -top-6 right-0 text-xs text-gray-500">
+                Margin: {settings.marginWidth}px
               </div>
               
-              {/* Outer Container */}
-              <div 
-                className="mx-auto border-2 border-dashed border-gray-600 relative"
-                style={{ maxWidth: `${settings.maxWidth}px` }}
+              {/* Content Area */}
+              <div
+                className="border border-gray-600/50 relative"
+                style={{
+                  marginLeft: `${settings.marginWidth}px`,
+                  marginRight: `${settings.marginWidth}px`,
+                  padding: '20px 0',
+                }}
               >
-                {/* Margin Indicators */}
-                <div className="absolute -top-6 left-0 text-xs text-gray-500">
-                  Margin: {settings.marginWidth}px
-                </div>
-                <div className="absolute -top-6 right-0 text-xs text-gray-500">
-                  Margin: {settings.marginWidth}px
+                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs text-green-400 bg-gray-900 px-2 py-1 rounded">
+                  Content Width: {getContentWidth()}px
                 </div>
                 
-                {/* Content Area */}
-                <div
-                  className="bg-gray-800/30 border border-gray-600/50 relative"
-                  style={{
-                    marginLeft: `${settings.marginWidth}px`,
-                    marginRight: `${settings.marginWidth}px`,
-                    padding: '20px 0',
-                  }}
+                {/* Grid Columns */}
+                <div 
+                  ref={gridRef}
+                  className="flex justify-start transition-all duration-500 ease-in-out"
                 >
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs text-green-400 bg-gray-800 px-2 py-1 rounded">
-                    Content Width: {getContentWidth()}px
-                  </div>
-                  
-                  {/* Grid Columns */}
-                  <div 
-                    ref={gridRef}
-                    className="flex justify-start transition-all duration-500 ease-in-out"
-                  >
-                    {renderGridColumns()}
-                  </div>
+                  {renderGridColumns()}
                 </div>
               </div>
             </div>
 
             {/* Formula Explanation */}
-            <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
-              <h4 className="text-sm font-semibold text-gray-300 mb-2">Calculation Formula:</h4>
-              <div className="text-xs text-gray-400 space-y-1">
-                <div>• Content Width = Max Width - (Margin × 2) = {settings.maxWidth} - ({settings.marginWidth} × 2) = <span className="text-green-400 font-semibold">{getContentWidth()}px</span></div>
-                <div>• Available Width = Content Width - (Gutters × {settings.columns - 1}) = {getContentWidth()} - ({settings.gutterWidth} × {settings.columns - 1}) = {getContentWidth() - (settings.gutterWidth * (settings.columns - 1))}px</div>
-                <div>• Column Width = Available Width ÷ {settings.columns} = <span className="text-blue-400 font-semibold">{calculateColumnWidth()}px</span></div>
+            <div className="max-w-6xl mx-auto mt-6 px-4">
+              <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+                <h4 className="text-sm font-semibold text-gray-300 mb-2">Calculation Formula:</h4>
+                <div className="text-xs text-gray-400 space-y-1">
+                  <div>• Content Width = Max Width - (Margin × 2) = {settings.maxWidth} - ({settings.marginWidth} × 2) = <span className="text-green-400 font-semibold">{getContentWidth()}px</span></div>
+                  <div>• Available Width = Content Width - (Gutters × {settings.columns - 1}) = {getContentWidth()} - ({settings.gutterWidth} × {settings.columns - 1}) = {getContentWidth() - (settings.gutterWidth * (settings.columns - 1))}px</div>
+                  <div>• Column Width = Available Width ÷ {settings.columns} = <span className="text-blue-400 font-semibold">{calculateColumnWidth()}px</span></div>
+                </div>
               </div>
             </div>
           </div>
-        )}
-
-        {/* Footer */}
-        <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>Built for designers who care about precision and beauty</p>
         </div>
+      )}
+
+      {/* Footer */}
+      <div className="text-center mt-8 text-gray-500 text-sm">
+        <p>Built for designers who care about precision and beauty</p>
       </div>
     </div>
   );
