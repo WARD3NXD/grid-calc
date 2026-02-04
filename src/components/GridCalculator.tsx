@@ -21,11 +21,73 @@ const GridCalculator: React.FC = () => {
   const [showGrid, setShowGrid] = useState(true);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  const adjustMarginOnly = (nextSettings: GridSettings) => {
+    const columns = Math.max(1, nextSettings.columns);
+    const maxWidth = Math.max(1, nextSettings.maxWidth);
+    const gutterWidth = Math.max(0, nextSettings.gutterWidth);
+    const marginWidth = Math.max(0, nextSettings.marginWidth);
+
+    const baseWidth = maxWidth - (columns - 1) * gutterWidth;
+    if (baseWidth <= 0) {
+      return {
+        ...nextSettings,
+        columns,
+        maxWidth,
+        gutterWidth,
+        marginWidth,
+      };
+    }
+
+    const candidates: number[] = [];
+    for (let colWidth = Math.floor(baseWidth / columns); colWidth >= 1; colWidth -= 1) {
+      const remaining = baseWidth - colWidth * columns;
+      const nextMargin = remaining / 2;
+      if (Number.isInteger(nextMargin) && nextMargin >= 0) {
+        candidates.push(nextMargin);
+      }
+    }
+
+    if (candidates.length === 0) {
+      return {
+        ...nextSettings,
+        columns,
+        maxWidth,
+        gutterWidth,
+        marginWidth,
+      };
+    }
+
+    const targetMargin = marginWidth;
+    const prefersPositive = targetMargin > 0;
+    const preferredCandidates = prefersPositive ? candidates.filter(value => value > 0) : candidates;
+    const usableCandidates = preferredCandidates.length > 0 ? preferredCandidates : candidates;
+    const closestMargin = usableCandidates.reduce((best, value) => {
+      const bestDelta = Math.abs(best - targetMargin);
+      const nextDelta = Math.abs(value - targetMargin);
+      if (nextDelta !== bestDelta) {
+        return nextDelta < bestDelta ? value : best;
+      }
+      return value < best ? value : best;
+    }, usableCandidates[0]);
+
+    return {
+      ...nextSettings,
+      columns,
+      maxWidth,
+      gutterWidth,
+      marginWidth: closestMargin,
+    };
+  };
+
   const handleInputChange = (field: keyof GridSettings, value: number) => {
     setSettings(prev => ({
       ...prev,
       [field]: Math.max(field === 'gutterWidth' || field === 'marginWidth' ? 0 : 1, value),
     }));
+  };
+
+  const autoCalculate = () => {
+    setSettings(prev => adjustMarginOnly(prev));
   };
 
   const generateGrid = () => {
@@ -257,6 +319,13 @@ ${Array.from({ length: settings.columns }, (_, i) => {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={autoCalculate}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground"
+            >
+              Auto Calculate All Fields
+            </button>
+
             <button
               onClick={generateGrid}
               disabled={isGenerating}
