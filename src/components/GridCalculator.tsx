@@ -16,16 +16,60 @@ const GridCalculator: React.FC = () => {
     gutterWidth: 20,
     marginWidth: 40,
   });
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  const adjustMarginOnly = (nextSettings: GridSettings) => {
+    const columns = Math.max(1, nextSettings.columns);
+    const maxWidth = Math.max(1, nextSettings.maxWidth);
+    const gutterWidth = Math.max(0, nextSettings.gutterWidth);
+    const marginWidth = Math.max(0, nextSettings.marginWidth);
+
+    if (columns === 1) {
+      return {
+        ...nextSettings,
+        columns,
+        maxWidth,
+        gutterWidth,
+        marginWidth,
+      };
+    }
+
+    const baseWidth = maxWidth - (columns - 1) * gutterWidth;
+    for (let colWidth = Math.floor(baseWidth / columns); colWidth >= 1; colWidth -= 1) {
+      const remaining = baseWidth - colWidth * columns;
+      const nextMargin = remaining / 2;
+      if (Number.isInteger(nextMargin) && nextMargin >= 0) {
+        return {
+          ...nextSettings,
+          columns,
+          maxWidth,
+          gutterWidth,
+          marginWidth: nextMargin,
+        };
+      }
+    }
+
+    return {
+      ...nextSettings,
+      columns,
+      maxWidth,
+      gutterWidth,
+      marginWidth,
+    };
+  };
+
   const handleInputChange = (field: keyof GridSettings, value: number) => {
     setSettings(prev => ({
       ...prev,
-      [field]: Math.max(field === 'gutterWidth' || field === 'marginWidth' ? 0 : 1, value)
+      [field]: Math.max(field === 'gutterWidth' || field === 'marginWidth' ? 0 : 1, value),
     }));
+  };
+
+  const autoCalculate = () => {
+    setSettings(prev => adjustMarginOnly(prev));
   };
 
   const generateGrid = () => {
@@ -38,7 +82,7 @@ const GridCalculator: React.FC = () => {
 
   const exportGrid = async () => {
     if (!gridRef.current) return;
-    
+
     try {
       const canvas = await html2canvas(gridRef.current, {
         backgroundColor: '#111827',
@@ -46,7 +90,7 @@ const GridCalculator: React.FC = () => {
         logging: false,
         useCORS: true,
       });
-      
+
       const link = document.createElement('a');
       link.download = `grid-${settings.columns}col-${settings.maxWidth}px.png`;
       link.href = canvas.toDataURL();
@@ -59,7 +103,7 @@ const GridCalculator: React.FC = () => {
   const exportCSS = () => {
     const columnWidth = calculateColumnWidth();
     const contentWidth = getContentWidth();
-    
+
     const cssCode = `/* Grid System - ${settings.columns} Column Layout */
 .container {
   max-width: ${settings.maxWidth}px;
@@ -92,15 +136,15 @@ ${Array.from({ length: settings.columns }, (_, i) => {
   .container {
     padding: 0 20px;
   }
-  
+
   .row {
     margin: 0 -10px;
   }
-  
+
   .col {
     padding: 0 10px;
   }
-  
+
   /* Mobile: Stack columns */
   .col-1, .col-2, .col-3, .col-4, .col-5, .col-6,
   .col-7, .col-8, .col-9, .col-10, .col-11, .col-12 {
@@ -151,7 +195,7 @@ ${Array.from({ length: settings.columns }, (_, i) => {
   };
 
   const getContentWidth = () => {
-    return settings.maxWidth - (settings.marginWidth * 2);
+    return settings.maxWidth - settings.marginWidth * 2;
   };
 
   const renderGridColumns = () => {
@@ -162,7 +206,7 @@ ${Array.from({ length: settings.columns }, (_, i) => {
       columns.push(
         <div
           key={i}
-          className="bg-blue-500/25 border border-blue-400/40 rounded-lg flex items-center justify-center text-blue-300 font-medium transition-all duration-300 hover:bg-blue-500/35 hover:border-blue-400/60"
+          className="flex items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary shadow-sm transition-colors duration-200 hover:bg-primary/20"
           style={{
             width: `${columnWidth}px`,
             height: '100px',
@@ -178,113 +222,116 @@ ${Array.from({ length: settings.columns }, (_, i) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white overflow-x-hidden">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="min-h-screen bg-background text-foreground dark">
+      <div className="container mx-auto max-w-6xl px-4 py-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="p-2.5 bg-blue-600 rounded-xl">
-              <Grid3X3 className="w-6 h-6" />
+        <div className="mb-8 text-center">
+          <div className="mb-3 flex items-center justify-center gap-3">
+            <div className="rounded-xl border border-border bg-card p-2.5 shadow-sm">
+              <Grid3X3 className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Grid Calculator
-            </h1>
+            <h1 className="text-3xl font-bold text-foreground">Grid Calculator</h1>
           </div>
-          <p className="text-gray-400">
-            Generate and preview column-based grid layouts for UI/UX design
+          <p className="text-sm text-muted-foreground">
+            Generate and preview column-based grid layouts for UI/UX design.
           </p>
         </div>
 
         {/* Controls Panel */}
-        <div className="bg-gray-800 rounded-2xl p-6 mb-6 shadow-2xl border border-gray-700">
-          <div className="flex items-center gap-3 mb-5">
-            <Settings className="w-5 h-5 text-blue-400" />
+        <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mb-5 flex items-center gap-3">
+            <Settings className="h-5 w-5 text-primary" />
             <h2 className="text-xl font-semibold">Grid Settings</h2>
           </div>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Max Width (px)
-              </label>
+              <label className="text-sm font-medium text-muted-foreground">Max Width (px)</label>
               <input
                 type="number"
                 value={settings.maxWidth}
-                onChange={(e) => handleInputChange('maxWidth', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white text-sm"
+                onChange={e => handleInputChange('maxWidth', parseInt(e.target.value) || 0)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 min="200"
                 max="2000"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-muted-foreground">
                 Number of Columns
               </label>
               <input
                 type="number"
                 value={settings.columns}
-                onChange={(e) => handleInputChange('columns', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white text-sm"
+                onChange={e => handleInputChange('columns', parseInt(e.target.value) || 0)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 min="1"
                 max="24"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-muted-foreground">
                 Gutter Width (px)
               </label>
               <input
                 type="number"
                 value={settings.gutterWidth}
-                onChange={(e) => handleInputChange('gutterWidth', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white text-sm"
+                onChange={e => handleInputChange('gutterWidth', parseInt(e.target.value) || 0)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 min="0"
                 max="100"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-muted-foreground">
                 Margin Width (px)
               </label>
               <input
                 type="number"
                 value={settings.marginWidth}
-                onChange={(e) => handleInputChange('marginWidth', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white text-sm"
+                onChange={e => handleInputChange('marginWidth', parseInt(e.target.value) || 0)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 min="0"
                 max="200"
               />
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={autoCalculate}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground"
+            >
+              Auto Calculate All Fields
+            </button>
+
             <button
               onClick={generateGrid}
               disabled={isGenerating}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
             >
-              <Calculator className="w-4 h-4" />
+              <Calculator className="h-4 w-4" />
               {isGenerating ? 'Generating...' : 'Generate Grid'}
             </button>
 
             <button
               onClick={exportGrid}
               disabled={!showGrid}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground shadow-sm transition hover:bg-secondary/80 disabled:pointer-events-none disabled:opacity-50"
             >
-              <Download className="w-4 h-4" />
+              <Download className="h-4 w-4" />
               Export Grid (PNG)
             </button>
 
             <button
               onClick={exportCSS}
               disabled={!showGrid}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
             >
-              <Code className="w-4 h-4" />
+              <Code className="h-4 w-4" />
               Export CSS
             </button>
           </div>
@@ -292,31 +339,31 @@ ${Array.from({ length: settings.columns }, (_, i) => {
 
         {/* Grid Specifications */}
         {showGrid && (
-          <div className="bg-gray-800 rounded-2xl p-6 mb-6 shadow-2xl border border-gray-700">
-            <div className="flex items-center gap-2 mb-4">
-              <Info className="w-5 h-5 text-blue-400" />
-              <h3 className="text-lg font-semibold text-blue-400">Grid Specifications</h3>
+          <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <Info className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Grid Specifications</h3>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
-              <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600/50">
-                <div className="text-gray-400 text-xs mb-1">Max Width</div>
-                <div className="text-lg font-bold text-white">{settings.maxWidth}px</div>
+            <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3 lg:grid-cols-5">
+              <div className="rounded-lg border border-border/70 bg-muted/40 p-3">
+                <div className="text-xs text-muted-foreground">Max Width</div>
+                <div className="text-lg font-bold text-foreground">{settings.maxWidth}px</div>
               </div>
-              <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600/50">
-                <div className="text-gray-400 text-xs mb-1">Content Width</div>
-                <div className="text-lg font-bold text-green-400">{getContentWidth()}px</div>
+              <div className="rounded-lg border border-border/70 bg-muted/40 p-3">
+                <div className="text-xs text-muted-foreground">Content Width</div>
+                <div className="text-lg font-bold text-emerald-400">{getContentWidth()}px</div>
               </div>
-              <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600/50">
-                <div className="text-gray-400 text-xs mb-1">Column Width</div>
-                <div className="text-lg font-bold text-blue-400">{calculateColumnWidth()}px</div>
+              <div className="rounded-lg border border-border/70 bg-muted/40 p-3">
+                <div className="text-xs text-muted-foreground">Column Width</div>
+                <div className="text-lg font-bold text-primary">{calculateColumnWidth()}px</div>
               </div>
-              <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600/50">
-                <div className="text-gray-400 text-xs mb-1">Total Columns</div>
-                <div className="text-lg font-bold text-purple-400">{settings.columns}</div>
+              <div className="rounded-lg border border-border/70 bg-muted/40 p-3">
+                <div className="text-xs text-muted-foreground">Total Columns</div>
+                <div className="text-lg font-bold text-violet-400">{settings.columns}</div>
               </div>
-              <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600/50">
-                <div className="text-gray-400 text-xs mb-1">Gutter Width</div>
-                <div className="text-lg font-bold text-orange-400">{settings.gutterWidth}px</div>
+              <div className="rounded-lg border border-border/70 bg-muted/40 p-3">
+                <div className="text-xs text-muted-foreground">Gutter Width</div>
+                <div className="text-lg font-bold text-amber-400">{settings.gutterWidth}px</div>
               </div>
             </div>
           </div>
@@ -325,55 +372,61 @@ ${Array.from({ length: settings.columns }, (_, i) => {
 
       {/* Container Simulation - Full Width Fluid Container */}
       {showGrid && (
-        <div className="w-full">
-          <h3 className="text-lg font-semibold mb-4 text-blue-400 text-center">Container Simulation</h3>
-          
+        <div className="w-full pb-8">
+          <h3 className="mb-4 text-center text-lg font-semibold text-primary">Container Simulation</h3>
+
           {/* Container Visualization */}
           <div className="w-full">
             {/* Outer Container */}
-            <div 
-              className="mx-auto border-2 border-dashed border-gray-600 relative"
+            <div
+              className="relative mx-auto rounded-2xl border border-dashed border-border bg-card/30 p-6 shadow-sm"
               style={{ maxWidth: `${settings.maxWidth}px` }}
             >
               {/* Margin Indicators */}
-              <div className="absolute -top-6 left-0 text-xs text-gray-500">
+              <div className="absolute -top-6 left-0 text-xs text-muted-foreground">
                 Margin: {settings.marginWidth}px
               </div>
-              <div className="absolute -top-6 right-0 text-xs text-gray-500">
+              <div className="absolute -top-6 right-0 text-xs text-muted-foreground">
                 Margin: {settings.marginWidth}px
               </div>
-              
+
               {/* Content Area */}
               <div
-                className="border border-gray-600/50 relative"
+                className="relative rounded-xl border border-border/60 bg-background/50 px-4 py-5"
                 style={{
                   marginLeft: `${settings.marginWidth}px`,
                   marginRight: `${settings.marginWidth}px`,
-                  padding: '20px 0',
                 }}
               >
-                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs text-green-400 bg-gray-900 px-2 py-1 rounded">
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 rounded-md border border-border bg-background px-2 py-1 text-xs text-emerald-400 shadow-sm">
                   Content Width: {getContentWidth()}px
                 </div>
-                
+
                 {/* Grid Columns */}
-                <div 
-                  ref={gridRef}
-                  className="flex justify-start transition-all duration-500 ease-in-out"
-                >
+                <div ref={gridRef} className="flex justify-start transition-all duration-500 ease-in-out">
                   {renderGridColumns()}
                 </div>
               </div>
             </div>
 
             {/* Formula Explanation */}
-            <div className="max-w-6xl mx-auto mt-6 px-4">
-              <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
-                <h4 className="text-sm font-semibold text-gray-300 mb-2">Calculation Formula:</h4>
-                <div className="text-xs text-gray-400 space-y-1">
-                  <div>• Content Width = Max Width - (Margin × 2) = {settings.maxWidth} - ({settings.marginWidth} × 2) = <span className="text-green-400 font-semibold">{getContentWidth()}px</span></div>
-                  <div>• Available Width = Content Width - (Gutters × {settings.columns - 1}) = {getContentWidth()} - ({settings.gutterWidth} × {settings.columns - 1}) = {getContentWidth() - (settings.gutterWidth * (settings.columns - 1))}px</div>
-                  <div>• Column Width = Available Width ÷ {settings.columns} = <span className="text-blue-400 font-semibold">{calculateColumnWidth()}px</span></div>
+            <div className="mx-auto mt-6 max-w-6xl px-4">
+              <div className="rounded-lg border border-border bg-muted/40 p-4">
+                <h4 className="mb-2 text-sm font-semibold text-foreground">Calculation Formula:</h4>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div>
+                    • Content Width = Max Width - (Margin × 2) = {settings.maxWidth} - ({settings.marginWidth} ×
+                    2) = <span className="font-semibold text-emerald-400">{getContentWidth()}px</span>
+                  </div>
+                  <div>
+                    • Available Width = Content Width - (Gutters × {settings.columns - 1}) = {getContentWidth()} -
+                    ({settings.gutterWidth} × {settings.columns - 1}) ={' '}
+                    {getContentWidth() - settings.gutterWidth * (settings.columns - 1)}px
+                  </div>
+                  <div>
+                    • Column Width = Available Width ÷ {settings.columns} ={' '}
+                    <span className="font-semibold text-primary">{calculateColumnWidth()}px</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -382,7 +435,7 @@ ${Array.from({ length: settings.columns }, (_, i) => {
       )}
 
       {/* Footer */}
-      <div className="text-center mt-8 text-gray-500 text-sm">
+      <div className="pb-8 text-center text-sm text-muted-foreground">
         <p>Built for designers who care about precision and beauty</p>
       </div>
     </div>
