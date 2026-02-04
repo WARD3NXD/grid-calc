@@ -19,6 +19,7 @@ const GridCalculator: React.FC = () => {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
+  const [lastEditedField, setLastEditedField] = useState<keyof GridSettings>('maxWidth');
   const gridRef = useRef<HTMLDivElement>(null);
 
   const adjustSettings = (nextSettings: GridSettings, prefer: 'gutter' | 'margin') => {
@@ -85,13 +86,17 @@ const GridCalculator: React.FC = () => {
   };
 
   const handleInputChange = (field: keyof GridSettings, value: number) => {
+    setLastEditedField(field);
+    setSettings(prev => ({
+      ...prev,
+      [field]: Math.max(field === 'gutterWidth' || field === 'marginWidth' ? 0 : 1, value),
+    }));
+  };
+
+  const autoCalculate = () => {
     setSettings(prev => {
-      const nextSettings = {
-        ...prev,
-        [field]: Math.max(field === 'gutterWidth' || field === 'marginWidth' ? 0 : 1, value),
-      } as GridSettings;
-      const prefer = field === 'gutterWidth' ? 'margin' : 'gutter';
-      return adjustSettings(nextSettings, prefer);
+      const prefer = lastEditedField === 'gutterWidth' ? 'margin' : 'gutter';
+      return adjustSettings(prev, prefer);
     });
   };
 
@@ -324,6 +329,13 @@ ${Array.from({ length: settings.columns }, (_, i) => {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={autoCalculate}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground"
+            >
+              Auto Calculate All Fields
+            </button>
+
             <button
               onClick={generateGrid}
               disabled={isGenerating}
